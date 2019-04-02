@@ -1,4 +1,3 @@
-
 discard """
 output:  '''test created
 test destroyed 0
@@ -102,7 +101,6 @@ proc newMySeq*(size: int, initial_value = 0.0): MySeqNonCopyable =#
   result.len = size
   if size > 0:
     result.data = cast[ptr UncheckedArray[float]](createShared(float, size))
-
   result.setTo(initial_value)
 
 proc myfunc(x, y: int): (MySeqNonCopyable, MySeqNonCopyable) =
@@ -166,7 +164,9 @@ seq4 =
 
 var ii = 1
 let arr2 = [newMySeq(2, 5.0), if i > 1: newMySeq(3, 1.0) else: newMySeq(0, 0.0)]
-var seqOfSeq2 = @[newMySeq(2, 5.0), newMySeq(3, 1.0)]
+
+when not compileOption("threads"): # currently SIGSEGV's with threads
+  var seqOfSeq2 = @[newMySeq(2, 5.0), newMySeq(3, 1.0)]
 
 
 ## issue #10462
