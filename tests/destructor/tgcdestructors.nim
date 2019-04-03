@@ -1,5 +1,5 @@
 discard """
-  cmd: '''nim c --newruntime $file'''
+  cmd: '''nim c --newruntime --threads:off $file'''
   output: '''hi
 ho
 ha
