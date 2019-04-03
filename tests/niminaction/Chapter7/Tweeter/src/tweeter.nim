@@ -1,5 +1,5 @@
 discard """
-cmd: "nim c --threads:off $file"
+action: compile
 """
 
 import asyncdispatch, times
