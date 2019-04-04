@@ -176,7 +176,7 @@ proc hashType(c: var MD5Context, t: PType; flags: set[ConsiderFlag]) =
     # no canonicalization for integral types, so that e.g. ``pid_t`` is
     # produced instead of ``NI``:
     c &= char(t.kind)
-    if t.sym != nil and {sfImportc, sfExportc} * t.sym.flags != {}:
+    if t.sym != nil and {sfImportSym, sfExportSym} * t.sym.flags != {}:
       c.hashSym(t.sym)
   of tyObject, tyEnum:
     if t.typeInst != nil:

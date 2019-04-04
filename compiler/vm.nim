@@ -1078,7 +1078,7 @@ proc rawExecute(c: PCtx, start: int, tos: PStackFrame): TFullReg =
           VmArgs(ra: ra, rb: rb, rc: rc, slots: cast[pointer](regs),
                  currentException: c.currentExceptionA,
                  currentLineInfo: c.debug[pc]))
-      elif sfImportc in prc.flags:
+      elif sfImportSym in prc.flags:
         if compiletimeFFI notin c.config.features:
           globalError(c.config, c.debug[pc], "VM not allowed to do FFI, see `compiletimeFFI`")
         # we pass 'tos.slots' instead of 'regs' so that the compiler can keep

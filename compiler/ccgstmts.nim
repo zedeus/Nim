@@ -282,7 +282,7 @@ proc genSingleVar(p: BProc, a: PNode) =
   var targetProc = p
   var traverseProc: Rope
   if sfGlobal in v.flags:
-    if v.flags * {sfImportc, sfExportc} == {sfImportc} and
+    if v.flags * {sfImportSym, sfExportSym} == {sfImportSym} and
         a.sons[2].kind == nkEmpty and
         v.loc.flags * {lfHeader, lfNoDecl} != {}:
       return
@@ -306,8 +306,8 @@ proc genSingleVar(p: BProc, a: PNode) =
       initLocExprSingleUse(p.module.preInitProc, vn, loc)
     genObjectInit(p.module.preInitProc, cpsInit, v.typ, loc, true)
     # Alternative construction using default constructor (which may zeromem):
-    # if sfImportc notin v.flags: constructLoc(p.module.preInitProc, v.loc)
-    if sfExportc in v.flags and p.module.g.generatedHeader != nil:
+    # if sfImportSym notin v.flags: constructLoc(p.module.preInitProc, v.loc)
+    if sfExportSym in v.flags and p.module.g.generatedHeader != nil:
       genVarPrototype(p.module.g.generatedHeader, vn)
     traverseProc = getTraverseProc(p, v)
     if traverseProc != nil and not p.hcrOn:

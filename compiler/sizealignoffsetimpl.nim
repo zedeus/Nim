@@ -395,7 +395,7 @@ proc computeSizeAlign(conf: ConfigRef; typ: PType) =
       return
     if offset == szUnknownSize or (
         typ.sym != nil and
-        typ.sym.flags * {sfCompilerProc, sfImportc} == {sfImportc}):
+        typ.sym.flags * {sfCompilerProc, sfImportSym} == {sfImportSym}):
       typ.size = szUnknownSize
       typ.align = szUnknownSize
       return

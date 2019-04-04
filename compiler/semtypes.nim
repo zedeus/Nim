@@ -711,10 +711,10 @@ proc semRecordNodeAux(c: PContext, n: PNode, check: var IntSet, pos: var int,
       f.typ = typ
       f.position = pos
       if fieldOwner != nil and
-         {sfImportc, sfExportc} * fieldOwner.flags != {} and
+         {sfImportSym, sfExportSym} * fieldOwner.flags != {} and
          not hasCaseFields and f.loc.r == nil:
         f.loc.r = rope(f.name.s)
-        f.flags = f.flags + ({sfImportc, sfExportc} * fieldOwner.flags)
+        f.flags = f.flags + ({sfImportSym, sfExportSym} * fieldOwner.flags)
       inc(pos)
       if containsOrIncl(check, f.name.id):
         localError(c.config, n.sons[i].info, "attempt to redefine: '" & f.name.s & "'")
@@ -1932,7 +1932,7 @@ proc semGenericParamList(c: PContext, n: PNode, father: PType = nil): PNode =
 
       if paramName.safeLen == 2:
         if not nimEnableCovariance or paramName[0].ident.s == "in":
-          if father == nil or sfImportc notin father.sym.flags:
+          if father == nil or sfImportSym notin father.sym.flags:
             localError(c.config, paramName.info, errInOutFlagNotExtern % $paramName[0])
         covarianceFlag = if paramName[0].ident.s == "in": tfContravariant
                          else: tfCovariant

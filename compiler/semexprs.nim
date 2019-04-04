@@ -703,7 +703,7 @@ proc evalAtCompileTime(c: PContext, n: PNode): PNode =
 
   # optimization pass: not necessary for correctness of the semantic pass
   if {sfNoSideEffect, sfCompileTime} * callee.flags != {} and
-     {sfForward, sfImportc} * callee.flags == {} and n.typ != nil:
+     {sfForward, sfImportSym} * callee.flags == {} and n.typ != nil:
     if sfCompileTime notin callee.flags and
         optImplicitStatic notin c.config.options: return
 
@@ -2007,7 +2007,7 @@ proc instantiateCreateFlowVarCall(c: PContext; t: PType;
   # since it's an instantiation, we unmark it as a compilerproc. Otherwise
   # codegen would fail:
   if sfCompilerProc in result.flags:
-    result.flags = result.flags - {sfCompilerProc, sfExportC, sfImportC}
+    result.flags = result.flags - {sfCompilerProc, sfExportSym, sfImportSym}
     result.loc.r = nil
 
 proc setMs(n: PNode, s: PSym): PNode =

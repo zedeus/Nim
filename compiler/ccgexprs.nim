@@ -2560,8 +2560,8 @@ proc expr(p: BProc, n: PNode, d: var TLoc) =
       # are not transformed correctly. We work around this issue (#411) here
       # by ensuring it's no inner proc (owner is a module):
       if prc.skipGenericOwner.kind == skModule and sfCompileTime notin prc.flags:
-        if ({sfExportc, sfCompilerProc} * prc.flags == {sfExportc}) or
-            (sfExportc in prc.flags and lfExportLib in prc.loc.flags) or
+        if ({sfExportSym, sfCompilerProc} * prc.flags == {sfExportSym}) or
+            (sfExportSym in prc.flags and lfExportLib in prc.loc.flags) or
             (prc.kind == skMethod):
           # we have not only the header:
           if prc.getBody.kind != nkEmpty or lfDynamicLib in prc.loc.flags:

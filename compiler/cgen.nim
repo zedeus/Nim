@@ -476,13 +476,13 @@ proc assignGlobalVar(p: BProc, n: PNode) =
   if lfNoDecl in s.loc.flags: return
   if not containsOrIncl(p.module.declaredThings, s.id):
     if sfThread in s.flags:
-      declareThreadVar(p.module, s, sfImportc in s.flags)
+      declareThreadVar(p.module, s, sfImportSym in s.flags)
     else:
       var decl: Rope = nil
       var td = getTypeDesc(p.module, s.loc.t)
       if s.constraint.isNil:
         if p.hcrOn: add(decl, "static ")
-        elif sfImportc in s.flags: add(decl, "extern ")
+        elif sfImportSym in s.flags: add(decl, "extern ")
         add(decl, td)
         if p.hcrOn: add(decl, "*")
         if sfRegister in s.flags: add(decl, " register")
@@ -993,7 +993,7 @@ proc requiresExternC(m: BModule; sym: PSym): bool {.inline.} =
   result = (sfCompileToCpp in m.module.flags and
            sfCompileToCpp notin sym.getModule().flags and
            m.config.cmd != cmdCompileToCpp) or (
-           sym.flags * {sfImportc, sfInfixCall, sfCompilerProc} == {sfImportc} and
+           sym.flags * {sfImportSym, sfInfixCall, sfCompilerProc} == {sfImportSym} and
            sym.magic == mNone and
            m.config.cmd == cmdCompileToCpp)
 
@@ -1042,7 +1042,7 @@ proc genProcNoForward(m: BModule, prc: PSym) =
       #if prc.loc.k == locNone:
       # mangle the inline proc based on the module where it is defined - not on the first module that uses it
       fillProcLoc(findPendingModule(m, prc), prc.ast[namePos])
-      #elif {sfExportc, sfImportc} * prc.flags == {}:
+      #elif {sfExportSym, sfImportSym} * prc.flags == {}:
       #  # reset name to restore consistency in case of hashing collisions:
       #  echo "resetting ", prc.id, " by ", m.module.name.s
       #  prc.loc.r = nil
@@ -1063,7 +1063,7 @@ proc genProcNoForward(m: BModule, prc: PSym) =
             [prc.loc.r, getTypeDesc(q, prc.loc.t), getModuleDllPath(m, q.module)])
     else:
       symInDynamicLibPartial(m, prc)
-  elif sfImportc notin prc.flags:
+  elif sfImportSym notin prc.flags:
     var q = findPendingModule(m, prc)
     fillProcLoc(q, prc.ast[namePos])
     # generate a getProc call to initialize the pointer for this
@@ -1103,7 +1103,7 @@ proc requestConstImpl(p: BProc, sym: PSym) =
     let headerDecl = "extern NIM_CONST $1 $2;$n" %
         [getTypeDesc(m, sym.loc.t), sym.loc.r]
     add(m.s[cfsData], headerDecl)
-    if sfExportc in sym.flags and p.module.g.generatedHeader != nil:
+    if sfExportSym in sym.flags and p.module.g.generatedHeader != nil:
       add(p.module.g.generatedHeader.s[cfsData], headerDecl)
 
 proc isActivated(prc: PSym): bool = prc.typ != nil
@@ -1115,7 +1115,7 @@ proc genProc(m: BModule, prc: PSym) =
     fillProcLoc(m, prc.ast[namePos])
   else:
     genProcNoForward(m, prc)
-    if {sfExportc, sfCompilerProc} * prc.flags == {sfExportc} and
+    if {sfExportSym, sfCompilerProc} * prc.flags == {sfExportSym} and
         m.g.generatedHeader != nil and lfNoDecl notin prc.loc.flags:
       genProcPrototype(m.g.generatedHeader, prc)
       if prc.typ.callConv == ccInline:

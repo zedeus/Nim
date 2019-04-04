@@ -137,7 +137,7 @@ proc styleCheckDefImpl(conf: ConfigRef; cache: IdentCache; info: TLineInfo; s: P
   # operators stay as they are:
   if k in {skResult, skTemp} or s.name.s[0] notin Letters: return
   if k in {skType, skGenericParam} and sfAnon in s.flags: return
-  if {sfImportc, sfExportc} * s.flags == {} or gCheckExtern:
+  if {sfImportSym, sfExportSym} * s.flags == {} or gCheckExtern:
     checkStyle(conf, cache, info, s.name.s, k, s)
 
 proc nep1CheckDefImpl(conf: ConfigRef; info: TLineInfo; s: PSym; k: TSymKind) =
@@ -145,7 +145,7 @@ proc nep1CheckDefImpl(conf: ConfigRef; info: TLineInfo; s: PSym; k: TSymKind) =
   if k in {skResult, skTemp} or s.name.s[0] notin Letters: return
   if k in {skType, skGenericParam} and sfAnon in s.flags: return
   if s.typ != nil and s.typ.kind == tyTypeDesc: return
-  if {sfImportc, sfExportc} * s.flags != {}: return
+  if {sfImportSym, sfExportSym} * s.flags != {}: return
   let beau = beautifyName(s.name.s, k)
   if s.name.s != beau:
     lintReport(conf, info, beau)

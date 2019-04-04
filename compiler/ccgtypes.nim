@@ -60,7 +60,7 @@ proc mangleParamName(m: BModule; s: PSym): Rope =
   if result == nil:
     var res = s.name.s.mangle
     # Take into account if HCR is on because of the following scenario:
-    #   if a module gets imported and it has some more importc symbols in it,
+    #   if a module gets imported and it has some more importSym symbols in it,
     # some param names might recieve the "_0" suffix to distinguish from what
     # is newly available. That might lead to changes in the C code in nimcache
     # that contain only a parameter name change, but that is enough to mandate
@@ -71,7 +71,7 @@ proc mangleParamName(m: BModule; s: PSym): Rope =
     # unintentionally - example (3 modules which import one another):
     #   main => proxy => reloadable
     # we call performCodeReload() in proxy to reload only changes in reloadable
-    # but there is a new import which introduces an importc symbol `socket`
+    # but there is a new import which introduces an importSym symbol `socket`
     # and a function called in main or proxy uses `socket` as a parameter name.
     # That would lead to either needing to reload `proxy` or to overwrite the
     # executable file for the main module, which is running (or both!) -> error.
@@ -124,7 +124,7 @@ proc typeName(typ: PType): Rope =
 proc getTypeName(m: BModule; typ: PType; sig: SigHash): Rope =
   var t = typ
   while true:
-    if t.sym != nil and {sfImportc, sfExportc} * t.sym.flags != {}:
+    if t.sym != nil and {sfImportSym, sfExportSym} * t.sym.flags != {}:
       return t.sym.loc.r
 
     if t.kind in irrelevantForBackend:
@@ -201,7 +201,7 @@ proc mapReturnType(conf: ConfigRef; typ: PType): TCTypeKind =
   result = mapType(conf, typ)
 
 proc isImportedType(t: PType): bool =
-  result = t.sym != nil and sfImportc in t.sym.flags
+  result = t.sym != nil and sfImportSym in t.sym.flags
 
 proc isImportedCppType(t: PType): bool =
   let x = t.skipTypes(irrelevantForBackend)
@@ -285,7 +285,7 @@ proc fillResult(conf: ConfigRef; param: PNode) =
     param.sym.loc.storage = OnUnknown
 
 proc typeNameOrLiteral(m: BModule; t: PType, literal: string): Rope =
-  if t.sym != nil and sfImportc in t.sym.flags and t.sym.magic == mNone:
+  if t.sym != nil and sfImportSym in t.sym.flags and t.sym.magic == mNone:
     result = t.sym.loc.r
   else:
     result = rope(literal)
@@ -452,7 +452,7 @@ proc genProcParams(m: BModule, t: PType, rettype, params: var Rope,
   params = "(" & params
 
 proc mangleRecFieldName(m: BModule; field: PSym): Rope =
-  if {sfImportc, sfExportc} * field.flags != {}:
+  if {sfImportSym, sfExportSym} * field.flags != {}:
     result = field.loc.r
   else:
     result = rope(mangleField(m, field.name))
@@ -688,7 +688,7 @@ proc getTypeDescAux(m: BModule, origTyp: PType, check: var IntSet): Rope =
     if result == nil:
       result = getTypeName(m, origTyp, sig)
       if not (isImportedCppType(t) or
-          (sfImportc in t.sym.flags and t.sym.magic == mNone)):
+          (sfImportSym in t.sym.flags and t.sym.magic == mNone)):
         m.typeCache[sig] = result
         var size: int
         if firstOrd(m.config, t) < 0:
@@ -833,7 +833,7 @@ proc getTypeDescAux(m: BModule, origTyp: PType, check: var IntSet): Rope =
       if result == nil:
         when false:
           if t.sym != nil and t.sym.name.s == "KeyValuePair":
-            # or {sfImportc, sfExportc} * t.sym.flags == {}:
+            # or {sfImportSym, sfExportSym} * t.sym.flags == {}:
             if t.loc.r != nil:
               echo t.kind, " ", hashType t
               echo origTyp.kind, " ", sig
@@ -920,7 +920,7 @@ proc genProcHeader(m: BModule, prc: PSym, asPtr: bool = false): Rope =
       result.add "N_LIB_EXPORT "
   elif prc.typ.callConv == ccInline or asPtr or isNonReloadable(m, prc):
     result.add "static "
-  elif {sfImportc, sfExportc} * prc.flags == {}:
+  elif {sfImportSym, sfExportSym} * prc.flags == {}:
     result.add "N_LIB_PRIVATE "
   var check = initIntSet()
   fillLoc(prc.loc, locProc, prc.ast[namePos], mangleName(m, prc), OnUnknown)

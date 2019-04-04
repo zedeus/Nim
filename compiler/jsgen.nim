@@ -1147,7 +1147,7 @@ template isIndirect(x: PSym): bool =
   let v = x
   ({sfAddrTaken, sfGlobal} * v.flags != {} and
     #(mapType(v.typ) != etyObject) and
-    {sfImportc, sfExportc} * v.flags == {} and
+    {sfImportSym, sfExportSym} * v.flags == {} and
     v.kind notin {skProc, skFunc, skConverter, skMethod, skIterator,
                   skConst, skTemp, skLet})
 
@@ -1269,7 +1269,7 @@ proc genSym(p: PProc, n: PNode, r: var TCompRes) =
     discard mangleName(p.module, s)
     r.res = s.loc.r
     if lfNoDecl in s.loc.flags or s.magic != mNone or
-       {sfImportc, sfInfixCall} * s.flags != {}:
+       {sfImportSym, sfInfixCall} * s.flags != {}:
       discard
     elif s.kind == skMethod and s.getBody.kind == nkEmpty:
       # we cannot produce code for the dispatcher yet:
@@ -1663,7 +1663,7 @@ proc genVarStmt(p: PProc, n: PNode) =
         assert(a.kind == nkIdentDefs)
         assert(a.sons[0].kind == nkSym)
         var v = a.sons[0].sym
-        if lfNoDecl notin v.loc.flags and sfImportc notin v.flags:
+        if lfNoDecl notin v.loc.flags and sfImportSym notin v.flags:
           genLineDir(p, a)
           genVarInit(p, v, a.sons[2])
 
@@ -2395,7 +2395,7 @@ proc gen(p: PProc, n: PNode, r: var TCompRes) =
   of nkPragma: genPragma(p, n)
   of nkProcDef, nkFuncDef, nkMethodDef, nkConverterDef:
     var s = n.sons[namePos].sym
-    if {sfExportc, sfCompilerProc} * s.flags == {sfExportc}:
+    if {sfExportSym, sfCompilerProc} * s.flags == {sfExportSym}:
       genSym(p, n.sons[namePos], r)
       r.res = nil
   of nkGotoState, nkState:

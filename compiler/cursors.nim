@@ -51,7 +51,7 @@ Look at this complex real world example taken from the compiler itself:
   proc getTypeName(m: BModule; typ: PType; sig: SigHash): Rope =
     var t = typ
     while true:
-      if t.sym != nil and {sfImportc, sfExportc} * t.sym.flags != {}:
+      if t.sym != nil and {sfImportSym, sfExportSym} * t.sym.flags != {}:
         return t.sym.loc.r
 
       if t.kind in irrelevantForBackend:

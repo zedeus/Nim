@@ -440,12 +440,12 @@ template notGcSafe(t): untyped = {tfGcSafe, tfNoSideEffect} * t.flags == {}
 
 proc importedFromC(n: PNode): bool =
   # when imported from C, we assume GC-safety.
-  result = n.kind == nkSym and sfImportc in n.sym.flags
+  result = n.kind == nkSym and sfImportSym in n.sym.flags
 
 proc getLockLevel(s: PSym): TLockLevel =
   result = s.typ.lockLevel
   if result == UnspecifiedLockLevel:
-    if {sfImportc, sfNoSideEffect} * s.flags != {} or
+    if {sfImportSym, sfNoSideEffect} * s.flags != {} or
        tfNoSideEffect in s.typ.flags:
       result = 0.TLockLevel
     else:
@@ -469,7 +469,7 @@ proc propagateEffects(tracked: PEffects, n: PNode, s: PSym) =
   let tagSpec = effectSpec(pragma, wTags)
   mergeTags(tracked, tagSpec, n)
 
-  if notGcSafe(s.typ) and sfImportc notin s.flags:
+  if notGcSafe(s.typ) and sfImportSym notin s.flags:
     if warnGcUnsafe in tracked.config.notes: warnAboutGcUnsafe(n, tracked.config)
     markGcUnsafe(tracked, s)
   if tfNoSideEffect notin s.typ.flags:

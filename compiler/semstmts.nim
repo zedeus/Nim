@@ -332,7 +332,7 @@ proc semIdentDef(c: PContext, n: PNode, kind: TSymKind): PSym =
   suggestSym(c.config, info, result, c.graph.usageSym)
 
 proc checkNilable(c: PContext; v: PSym) =
-  if {sfGlobal, sfImportC} * v.flags == {sfGlobal} and
+  if {sfGlobal, sfImportSym} * v.flags == {sfGlobal} and
       {tfNotNil, tfNeedsInit} * v.typ.flags != {}:
     if v.astdef.isNil:
       message(c.config, v.info, warnProveInit, v.name.s)
@@ -1159,7 +1159,7 @@ proc typeSectionRightSidePass(c: PContext, n: PNode) =
           # such types, because this would offer various interesting
           # possibilities such as instantiating C++ generic types with
           # garbage collected Nim types.
-          if sfImportc in s.flags:
+          if sfImportSym in s.flags:
             var body = s.typ.lastSon
             if body.kind == tyObject:
               # erases all declared fields
@@ -1187,8 +1187,8 @@ proc typeSectionRightSidePass(c: PContext, n: PNode) =
       # final pass
       if a[2].kind in nkCallKinds:
         incl a[2].flags, nfSem # bug #10548
-    if sfExportc in s.flags and s.typ.kind == tyAlias:
-      localError(c.config, name.info, "{.exportc.} not allowed for type aliases")
+    if sfExportSym in s.flags and s.typ.kind == tyAlias:
+      localError(c.config, name.info, "{.exportSym.} not allowed for type aliases")
     if tfBorrowDot in s.typ.flags and s.typ.kind != tyDistinct:
       excl s.typ.flags, tfBorrowDot
       localError(c.config, name.info, "only a 'distinct' type can borrow `.`")
@@ -1467,7 +1467,7 @@ proc semLambda(c: PContext, n: PNode, flags: TExprFlags): PNode =
     pragma(c, s, n.sons[pragmasPos], lambdaPragmas)
   s.options = c.config.options
   if n.sons[bodyPos].kind != nkEmpty:
-    if sfImportc in s.flags:
+    if sfImportSym in s.flags:
       localError(c.config, n.sons[bodyPos].info, errImplOfXNotAllowed % s.name.s)
     #if efDetermineType notin flags:
     # XXX not good enough; see tnamedparamanonproc.nim
@@ -1845,7 +1845,7 @@ proc semProcAux(c: PContext, n: PNode, kind: TSymKind,
         " operator has to be enabled with {.experimental: \"callOperator\".}")
 
   if n.sons[bodyPos].kind != nkEmpty and sfError notin s.flags:
-    # for DLL generation it is annoying to check for sfImportc!
+    # for DLL generation it is annoying to check for sfImportSym!
     if sfBorrow in s.flags:
       localError(c.config, n.sons[bodyPos].info, errImplOfXNotAllowed % s.name.s)
     let usePseudoGenerics = kind in {skMacro, skTemplate}
@@ -1866,7 +1866,7 @@ proc semProcAux(c: PContext, n: PNode, kind: TSymKind,
         if s.kind == skMethod: semMethodPrototype(c, s, n)
 
         if lfDynamicLib notin s.loc.flags:
-          # no semantic checking for importc:
+          # no semantic checking for importSym:
           s.ast[bodyPos] = hloBody(c, semProcBody(c, n.sons[bodyPos]))
           # unfortunately we cannot skip this step when in 'system.compiles'
           # context as it may even be evaluated in 'system.compiles':
@@ -1881,14 +1881,14 @@ proc semProcAux(c: PContext, n: PNode, kind: TSymKind,
         if s.magic == mNone:
           fixupInstantiatedSymbols(c, s)
         if s.kind == skMethod: semMethodPrototype(c, s, n)
-      if sfImportc in s.flags:
-        # so we just ignore the body after semantic checking for importc:
+      if sfImportSym in s.flags:
+        # so we just ignore the body after semantic checking for importSym:
         n.sons[bodyPos] = c.graph.emptyNode
       popProcCon(c)
   else:
     if s.kind == skMethod: semMethodPrototype(c, s, n)
     if proto != nil: localError(c.config, n.info, errImplOfXexpected % proto.name.s)
-    if {sfImportc, sfBorrow, sfError} * s.flags == {} and s.magic == mNone:
+    if {sfImportSym, sfBorrow, sfError} * s.flags == {} and s.magic == mNone:
       incl(s.flags, sfForward)
     elif sfBorrow in s.flags: semBorrow(c, n, s)
   sideEffectsCheck(c, s)

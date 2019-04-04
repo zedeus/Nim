@@ -19,24 +19,26 @@ const
   LastCallConv* = wNoconv
 
 const
-  procPragmas* = {FirstCallConv..LastCallConv, wImportc, wExportc, wNodecl,
-    wMagic, wNosideeffect, wSideeffect, wNoreturn, wDynlib, wHeader,
+  procPragmas* = {FirstCallConv..LastCallConv, wImportc, wImportSym, wExportc, wExportSym,
+    wNodecl, wMagic, wNosideeffect, wSideeffect, wNoreturn, wDynlib, wHeader,
     wCompilerProc, wNonReloadable, wCore, wProcVar, wDeprecated, wVarargs, wCompileTime, wMerge,
-    wBorrow, wExtern, wImportCompilerProc, wThread, wImportCpp, wImportObjC,
-    wAsmNoStackFrame, wError, wDiscardable, wNoInit, wCodegenDecl,
+    wBorrow, wExtern, wImportCompilerProc, wThread, wImportCpp, wImportPattern,
+    wImportObjC, wAsmNoStackFrame, wError, wDiscardable, wNoInit, wCodegenDecl,
     wGensym, wInject, wRaises, wTags, wLocks, wDelegator, wGcSafe,
     wConstructor, wExportNims, wUsed, wLiftLocals, wStacktrace, wLinetrace}
   converterPragmas* = procPragmas
-  methodPragmas* = procPragmas+{wBase}-{wImportCpp}
+  methodPragmas* = procPragmas+{wBase}-{wImportCpp, wImportPattern}
   templatePragmas* = {wImmediate, wDeprecated, wError, wGensym, wInject, wDirty,
     wDelegator, wExportNims, wUsed, wPragma}
-  macroPragmas* = {FirstCallConv..LastCallConv, wImmediate, wImportc, wExportc,
-    wNodecl, wMagic, wNosideeffect, wCompilerProc, wNonReloadable, wCore, wDeprecated, wExtern,
-    wImportCpp, wImportObjC, wError, wDiscardable, wGensym, wInject, wDelegator,
-    wExportNims, wUsed}
+  macroPragmas* = {FirstCallConv..LastCallConv, wImmediate, wImportc, wImportSym,
+    wExportc, wExportSym, wNodecl, wMagic, wNosideeffect, wCompilerProc,
+    wNonReloadable, wCore, wDeprecated, wExtern,
+    wImportCpp, wImportPattern, wImportObjC, wError, wDiscardable, wGensym,
+    wInject, wDelegator, wExportNims, wUsed}
   iteratorPragmas* = {FirstCallConv..LastCallConv, wNosideeffect, wSideeffect,
-    wImportc, wExportc, wNodecl, wMagic, wDeprecated, wBorrow, wExtern,
-    wImportCpp, wImportObjC, wError, wDiscardable, wGensym, wInject, wRaises,
+    wImportc, wImportSym, wExportc, wExportSym, wNodecl, wMagic, wDeprecated,
+    wBorrow, wExtern, wImportCpp, wImportPattern, wImportObjC, wError,
+    wDiscardable, wGensym, wInject, wRaises,
     wTags, wLocks, wGcSafe, wExportNims, wUsed}
   exprPragmas* = {wLine, wLocks, wNoRewrite, wGcSafe, wNosideeffect}
   stmtPragmas* = {wChecks, wObjChecks, wFieldChecks, wRangechecks,
@@ -50,23 +52,27 @@ const
     wFloatchecks, wInfChecks, wNanChecks, wPragma, wEmit, wUnroll,
     wLinearScanEnd, wPatterns, wTrMacros, wEffects, wNoForward, wReorder, wComputedGoto,
     wInjectStmt, wDeprecated, wExperimental, wThis}
-  lambdaPragmas* = {FirstCallConv..LastCallConv, wImportc, wExportc, wNodecl,
+  lambdaPragmas* = {FirstCallConv..LastCallConv, wImportc, wImportSym,
+    wExportc, wExportSym, wNodecl,
     wNosideeffect, wSideeffect, wNoreturn, wDynlib, wHeader,
-    wDeprecated, wExtern, wThread, wImportCpp, wImportObjC, wAsmNoStackFrame,
+    wDeprecated, wExtern, wThread, wImportCpp, wImportPattern, wImportObjC, wAsmNoStackFrame,
     wRaises, wLocks, wTags, wGcSafe, wCodegenDecl}
-  typePragmas* = {wImportc, wExportc, wDeprecated, wMagic, wAcyclic, wNodecl,
+  typePragmas* = {wImportc, wImportSym, wExportc, wExportSym, wDeprecated,
+    wMagic, wAcyclic, wNodecl,
     wPure, wHeader, wCompilerProc, wCore, wFinal, wSize, wExtern, wShallow,
-    wImportCpp, wImportObjC, wError, wIncompleteStruct, wByCopy, wByRef,
+    wImportCpp, wImportPattern, wImportObjC, wError, wIncompleteStruct, wByCopy, wByRef,
     wInheritable, wGensym, wInject, wRequiresInit, wUnchecked, wUnion, wPacked,
     wBorrow, wGcSafe, wExportNims, wPartial, wUsed, wExplain, wPackage}
-  fieldPragmas* = {wImportc, wExportc, wDeprecated, wExtern,
-    wImportCpp, wImportObjC, wError, wGuard, wBitsize, wUsed}
-  varPragmas* = {wImportc, wExportc, wVolatile, wRegister, wThreadVar, wNodecl,
+  fieldPragmas* = {wImportc, wImportSym, wExportc, wExportSym, wDeprecated, wExtern,
+    wImportCpp, wImportPattern, wImportObjC, wError, wGuard, wBitsize, wUsed}
+  varPragmas* = {wImportc, wImportSym, wExportc, wExportSym, wVolatile,
+    wRegister, wThreadVar, wNodecl,
     wMagic, wHeader, wDeprecated, wCompilerProc, wCore, wDynlib, wExtern,
-    wImportCpp, wImportObjC, wError, wNoInit, wCompileTime, wGlobal,
+    wImportCpp, wImportPattern, wImportObjC, wError, wNoInit, wCompileTime, wGlobal,
     wGensym, wInject, wCodegenDecl, wGuard, wGoto, wExportNims, wUsed, wCursor}
-  constPragmas* = {wImportc, wExportc, wHeader, wDeprecated, wMagic, wNodecl,
-    wExtern, wImportCpp, wImportObjC, wError, wGensym, wInject, wExportNims,
+  constPragmas* = {wImportc, wImportSym, wExportc, wExportSym, wHeader,
+    wDeprecated, wMagic, wNodecl, wExtern, wImportCpp, wImportPattern,
+    wImportObjC, wError, wGensym, wInject, wExportNims,
     wIntDefine, wStrDefine, wBoolDefine, wUsed, wCompilerProc, wCore}
   letPragmas* = varPragmas
   procTypePragmas* = {FirstCallConv..LastCallConv, wVarargs, wNosideeffect,
@@ -127,27 +133,27 @@ proc setExternName(c: PContext; s: PSym, extname: string, info: TLineInfo) =
     except ValueError:
       localError(c.config, info, "invalid extern name: '" & extname & "'. (Forgot to escape '$'?)")
   if c.config.cmd == cmdPretty and '$' notin extname:
-    # note that '{.importc.}' is transformed into '{.importc: "$1".}'
+    # note that '{.importSym.}' is transformed into '{.importSym: "$1".}'
     s.loc.flags.incl(lfFullExternalName)
 
 proc makeExternImport(c: PContext; s: PSym, extname: string, info: TLineInfo) =
   setExternName(c, s, extname, info)
-  incl(s.flags, sfImportc)
+  incl(s.flags, sfImportSym)
   excl(s.flags, sfForward)
 
 proc makeExternExport(c: PContext; s: PSym, extname: string, info: TLineInfo) =
   setExternName(c, s, extname, info)
-  incl(s.flags, sfExportc)
+  incl(s.flags, sfExportSym)
 
 proc processImportCompilerProc(c: PContext; s: PSym, extname: string, info: TLineInfo) =
   setExternName(c, s, extname, info)
-  incl(s.flags, sfImportc)
+  incl(s.flags, sfImportSym)
   excl(s.flags, sfForward)
   incl(s.loc.flags, lfImportCompilerProc)
 
-proc processImportCpp(c: PContext; s: PSym, extname: string, info: TLineInfo) =
+proc processImportPattern(c: PContext; s: PSym, extname: string, info: TLineInfo) =
   setExternName(c, s, extname, info)
-  incl(s.flags, sfImportc)
+  incl(s.flags, sfImportSym)
   incl(s.flags, sfInfixCall)
   excl(s.flags, sfForward)
   if c.config.cmd == cmdCompileToC:
@@ -157,7 +163,7 @@ proc processImportCpp(c: PContext; s: PSym, extname: string, info: TLineInfo) =
 
 proc processImportObjC(c: PContext; s: PSym, extname: string, info: TLineInfo) =
   setExternName(c, s, extname, info)
-  incl(s.flags, sfImportc)
+  incl(s.flags, sfImportSym)
   incl(s.flags, sfNamedParamCall)
   excl(s.flags, sfForward)
   let m = s.getModule()
@@ -774,10 +780,10 @@ proc singlePragma(c: PContext, sym: PSym, n: PNode, i: var int,
     let k = whichKeyword(ident)
     if k in validPragmas:
       case k
-      of wExportc:
+      of wExportc, wExportSym:
         makeExternExport(c, sym, getOptionalStr(c, it, "$1"), it.info)
         incl(sym.flags, sfUsed) # avoid wrong hints
-      of wImportc:
+      of wImportc, wImportSym:
         let name = getOptionalStr(c, it, "$1")
         cppDefine(c.config, name)
         recordPragma(c, it, "cppdefine", name)
@@ -797,8 +803,8 @@ proc singlePragma(c: PContext, sym: PSym, n: PNode, i: var int,
       of wDirty:
         if sym.kind == skTemplate: incl(sym.flags, sfDirty)
         else: invalidPragma(c, it)
-      of wImportCpp:
-        processImportCpp(c, sym, getOptionalStr(c, it, "$1"), it.info)
+      of wImportCpp, wImportPattern:
+        processImportPattern(c, sym, getOptionalStr(c, it, "$1"), it.info)
       of wImportObjC:
         processImportObjC(c, sym, getOptionalStr(c, it, "$1"), it.info)
       of wAlign:
@@ -858,7 +864,7 @@ proc singlePragma(c: PContext, sym: PSym, n: PNode, i: var int,
       of wHeader:
         var lib = getLib(c, libHeader, getStrLitNode(c, it))
         addToLib(lib, sym)
-        incl(sym.flags, sfImportc)
+        incl(sym.flags, sfImportSym)
         incl(sym.loc.flags, lfHeader)
         incl(sym.loc.flags, lfNoDecl)
         # implies nodecl, because otherwise header would not make sense
@@ -1171,11 +1177,11 @@ proc implicitPragmas*(c: PContext, sym: PSym, n: PNode,
         popInfoContext(c.config)
         if sym.kind in routineKinds and sym.ast != nil: mergePragmas(sym.ast, o)
 
-    if lfExportLib in sym.loc.flags and sfExportc notin sym.flags:
-      localError(c.config, n.info, ".dynlib requires .exportc")
+    if lfExportLib in sym.loc.flags and sfExportSym notin sym.flags:
+      localError(c.config, n.info, ".dynlib requires .exportSym")
     var lib = c.optionStack[^1].dynlib
     if {lfDynamicLib, lfHeader} * sym.loc.flags == {} and
-        sfImportc in sym.flags and lib != nil:
+        sfImportSym in sym.flags and lib != nil:
       incl(sym.loc.flags, lfDynamicLib)
       addToLib(lib, sym)
       if sym.loc.r == nil: sym.loc.r = rope(sym.name.s)

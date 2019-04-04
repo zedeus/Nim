@@ -236,8 +236,8 @@ type
     sfGlobal,         # symbol is at global scope
 
     sfForward,        # symbol is forward declared
-    sfImportc,        # symbol is external; imported
-    sfExportc,        # symbol is exported (under a specified name)
+    sfImportSym,      # symbol is external; imported
+    sfExportSym,      # symbol is exported (under a specified name)
     sfVolatile,       # variable is volatile
     sfRegister,       # variable should be placed in a register
     sfPure,           # object is "pure" that means it has no type-information
@@ -759,14 +759,14 @@ type
   TLocFlag* = enum
     lfIndirect,               # backend introduced a pointer
     lfFullExternalName, # only used when 'conf.cmd == cmdPretty': Indicates
-      # that the symbol has been imported via 'importc: "fullname"' and
+      # that the symbol has been imported via 'importSym: "fullname"' and
       # no format string.
     lfNoDeepCopy,             # no need for a deep copy
     lfNoDecl,                 # do not declare it in C
     lfDynamicLib,             # link symbol to dynamic library
     lfExportLib,              # export symbol for dynamic library generation
     lfHeader,                 # include header file for symbol
-    lfImportCompilerProc,     # ``importc`` of a compilerproc
+    lfImportCompilerProc,     # ``importSym`` of a compilerproc
     lfSingleUse               # no location yet and will only be used once
   TStorageLoc* = enum
     OnUnknown,                # location is unknown (stack, heap or static)
@@ -1774,7 +1774,7 @@ proc isImportedException*(t: PType; conf: ConfigRef): bool =
 
   let base = t.skipTypes({tyAlias, tyPtr, tyDistinct, tyGenericInst})
 
-  if base.sym != nil and {sfCompileToCpp, sfImportc} * base.sym.flags != {}:
+  if base.sym != nil and {sfCompileToCpp, sfImportSym} * base.sym.flags != {}:
     result = true
 
 proc isInfixAs*(n: PNode): bool =

@@ -142,11 +142,11 @@ proc genArg(p: BProc, n: PNode, param: PSym; call: PNode): Rope =
   elif p.module.compileToCpp and param.typ.kind == tyVar and
       n.kind == nkHiddenAddr:
     initLocExprSingleUse(p, n.sons[0], a)
-    # if the proc is 'importc'ed but not 'importcpp'ed then 'var T' still
+    # if the proc is 'importSym'ed but not 'importcpp'ed then 'var T' still
     # means '*T'. See posix.nim for lots of examples that do that in the wild.
     let callee = call.sons[0]
     if callee.kind == nkSym and
-        {sfImportC, sfInfixCall, sfCompilerProc} * callee.sym.flags == {sfImportC} and
+        {sfImportSym, sfInfixCall, sfCompilerProc} * callee.sym.flags == {sfImportSym} and
         {lfHeader, lfNoDecl} * callee.sym.loc.flags != {}:
       result = addrLoc(p.config, a)
     else:
@@ -175,7 +175,7 @@ template genParamLoop(params) {.dirty.} =
     add(params, genArgNoParam(p, ri.sons[i]))
 
 proc addActualPrefixForHCR(res: var Rope, module: PSym, sym: PSym) =
-  if sym.flags * {sfImportc, sfNonReloadable} == {} and
+  if sym.flags * {sfImportSym, sfNonReloadable} == {} and
       (sym.typ.callConv == ccInline or sym.owner.id == module.id):
     res = res & "_actual".rope
 
