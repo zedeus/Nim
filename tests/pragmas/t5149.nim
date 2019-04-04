@@ -1,5 +1,5 @@
 discard """
-  errormsg: "{.exportc.} not allowed for type aliases"
+  errormsg: "{.exportSym.} not allowed for type aliases"
   line: 9
 """
 
