@@ -220,8 +220,15 @@ import hashes, math, algorithm
 
 include "system/inclrtl"
 
+
+when defined(robinHood):
+  type
+    KeyValuePair[A, B] = tuple[hcode: Hash, dist: int, key: A, val: B]
+else:
+  type
+     KeyValuePair[A, B] = tuple[hcode: Hash, key: A, val: B]
+
 type
-  KeyValuePair[A, B] = tuple[hcode: Hash, key: A, val: B]
   KeyValuePairSeq[A, B] = seq[KeyValuePair[A, B]]
   Table*[A, B] = object
     ## Generic hash table, consisting of a key-value pair.
@@ -247,7 +254,10 @@ const
 template maxHash(t): untyped = high(t.data)
 template dataLen(t): untyped = len(t.data)
 
-include tableimpl
+when defined(robinHood):
+  include robinhoodimpl
+else:
+  include tableimpl
 
 proc rightSize*(count: Natural): int {.inline.}
 
@@ -264,17 +274,37 @@ template get(t, key): untyped =
     else:
       raise newException(KeyError, "key not found")
 
-proc enlarge[A, B](t: var Table[A, B]) =
-  var n: KeyValuePairSeq[A, B]
-  newSeq(n, len(t.data) * growthFactor)
-  swap(t.data, n)
-  for i in countup(0, high(n)):
-    let eh = n[i].hcode
-    if isFilled(eh):
-      var j: Hash = eh and maxHash(t)
-      while isFilled(t.data[j].hcode):
-        j = nextTry(j, maxHash(t))
-      rawInsert(t, t.data, move n[i].key, move n[i].val, eh, j)
+when defined(robinHood):
+  proc enlarge[A, B](t: var Table[A, B]) =
+    var n: KeyValuePairSeq[A, B]
+    newSeq(n, len(t.data) * growthFactor)
+    swap t.data, n
+    for i in 0 .. high(n):
+      var eh = n[i].hcode
+      if isFilled(eh):
+        var j: Hash = eh and maxHash(t)
+        var dist = 0
+        while isFilled(t.data[j].hcode):
+          if dist > t.data[j].dist:
+            swap eh, t.data[j].hcode
+            swap n[i].key, t.data[j].key
+            swap n[i].val, t.data[j].val
+            swap dist, t.data[j].dist
+          j = nextTry(j, maxHash(t))
+          inc dist
+        rawInsert(t, t.data, move n[i].key, move n[i].val, eh, j, dist)
+else:
+  proc enlarge[A, B](t: var Table[A, B]) =
+    var n: KeyValuePairSeq[A, B]
+    newSeq(n, len(t.data) * growthFactor)
+    swap(t.data, n)
+    for i in countup(0, high(n)):
+      let eh = n[i].hcode
+      if isFilled(eh):
+        var j: Hash = eh and maxHash(t)
+        while isFilled(t.data[j].hcode):
+          j = nextTry(j, maxHash(t))
+        rawInsert(t, t.data, move n[i].key, move n[i].val, eh, j)
 
 
 
@@ -495,7 +525,11 @@ proc add*[A, B](t: var Table[A, B], key: A, val: B) =
   ##
   ## Use `[]= proc<#[]=,Table[A,B],A,B>`_ for inserting a new
   ## (key, value) pair in the table without introducing duplicates.
-  addImpl(enlarge)
+  when defined(robinHood):
+    # XXX temporary workaround
+    t[key] = val
+  else:
+    addImpl(enlarge)
 
 proc del*[A, B](t: var Table[A, B], key: A) =
   ## Deletes ``key`` from hash table ``t``. Does nothing if the key does not exist.
@@ -1194,9 +1228,16 @@ iterator mvalues*[A, B](t: TableRef[A, B]): var B =
 # ------------------------------ OrderedTable -------------------------------
 # ---------------------------------------------------------------------------
 
+when defined(robinHood):
+  type
+    OrderedKeyValuePair[A, B] = tuple[
+      hcode: Hash, dist, next: int, key: A, val: B]
+else:
+  type
+    OrderedKeyValuePair[A, B] = tuple[
+      hcode: Hash, next: int, key: A, val: B]
+
 type
-  OrderedKeyValuePair[A, B] = tuple[
-    hcode: Hash, next: int, key: A, val: B]
   OrderedKeyValuePairSeq[A, B] = seq[OrderedKeyValuePair[A, B]]
   OrderedTable* [A, B] = object
     ## Hash table that remembers insertion order.
@@ -1214,24 +1255,30 @@ type
 
 # ------------------------------ helpers ---------------------------------
 
-proc rawGetKnownHC[A, B](t: OrderedTable[A, B], key: A, hc: Hash): int =
+proc rawGetKnownHC[A, B](t: OrderedTable[A, B], key: A, hc: Hash, dist: var int): int =
+  when defined(robinHood):
+    var
+      h = hc and maxHash(t)
+      dist = 0
   rawGetKnownHCImpl()
 
-proc rawGetDeep[A, B](t: OrderedTable[A, B], key: A, hc: var Hash): int {.inline.} =
-  rawGetDeepImpl()
+when not defined(robinHood): # XXX enable this for RH
+  proc rawGetDeep[A, B](t: OrderedTable[A, B], key: A, hc: var Hash): int {.inline.} =
+    rawGetDeepImpl()
 
 proc rawGet[A, B](t: OrderedTable[A, B], key: A, hc: var Hash): int =
   rawGetImpl()
 
 proc rawInsert[A, B](t: var OrderedTable[A, B],
                      data: var OrderedKeyValuePairSeq[A, B],
-                     key: A, val: B, hc: Hash, h: Hash) =
+                     key: A, val: B, hc: Hash, h: Hash, dist = 0) =
   rawInsertImpl()
   data[h].next = -1
   if t.first < 0: t.first = h
   if t.last >= 0: data[t.last].next = h
   t.last = h
 
+# XXX fix this for Robin Hood!
 proc enlarge[A, B](t: var OrderedTable[A, B]) =
   var n: OrderedKeyValuePairSeq[A, B]
   newSeq(n, len(t.data) * growthFactor)
@@ -1476,7 +1523,11 @@ proc add*[A, B](t: var OrderedTable[A, B], key: A, val: B) =
   ##
   ## Use `[]= proc<#[]=,OrderedTable[A,B],A,B>`_ for inserting a new
   ## (key, value) pair in the table without introducing duplicates.
-  addImpl(enlarge)
+  when defined(robinHood):
+    # XXX temporary workaround
+    t[key] = val
+  else:
+    addImpl(enlarge)
 
 proc del*[A, B](t: var OrderedTable[A, B], key: A) =
   ## Deletes ``key`` from hash table ``t``. Does nothing if the key does not exist.
@@ -1492,22 +1543,23 @@ proc del*[A, B](t: var OrderedTable[A, B], key: A) =
     a.del('z')
     doAssert a == {'b': 9, 'c': 13}.toOrderedTable
 
-  var n: OrderedKeyValuePairSeq[A, B]
-  newSeq(n, len(t.data))
-  var h = t.first
-  t.first = -1
-  t.last = -1
-  swap(t.data, n)
-  let hc = genHash(key)
-  while h >= 0:
-    var nxt = n[h].next
-    if isFilled(n[h].hcode):
-      if n[h].hcode == hc and n[h].key == key:
-        dec t.counter
-      else:
-        var j = -1 - rawGetKnownHC(t, n[h].key, n[h].hcode)
-        rawInsert(t, t.data, n[h].key, n[h].val, n[h].hcode, j)
-    h = nxt
+  when not defined(robinHood): # XXX implement this for RH
+    var n: OrderedKeyValuePairSeq[A, B]
+    newSeq(n, len(t.data))
+    var h = t.first
+    t.first = -1
+    t.last = -1
+    swap(t.data, n)
+    let hc = genHash(key)
+    while h >= 0:
+      var nxt = n[h].next
+      if isFilled(n[h].hcode):
+        if n[h].hcode == hc and n[h].key == key:
+          dec t.counter
+        else:
+          var j = -1 - rawGetKnownHC(t, n[h].key, n[h].hcode)
+          rawInsert(t, t.data, n[h].key, n[h].val, n[h].hcode, j)
+      h = nxt
 
 proc clear*[A, B](t: var OrderedTable[A, B]) =
   ## Resets the table so that it is empty.
@@ -2775,39 +2827,40 @@ when isMainModule:
   s3[p1] = 30_000
   s3[p2] = 45_000
 
-  block: # Ordered table should preserve order after deletion
-    var
-      s4 = initOrderedTable[int, int]()
-    s4[1] = 1
-    s4[2] = 2
-    s4[3] = 3
+  when not defined(robinHood):
+    block: # Ordered table should preserve order after deletion
+      var
+        s4 = initOrderedTable[int, int]()
+      s4[1] = 1
+      s4[2] = 2
+      s4[3] = 3
 
-    var prev = 0
-    for i in s4.values:
-      doAssert(prev < i)
-      prev = i
+      var prev = 0
+      for i in s4.values:
+        doAssert(prev < i)
+        prev = i
 
-    s4.del(2)
-    doAssert(2 notin s4)
-    doAssert(s4.len == 2)
-    prev = 0
-    for i in s4.values:
-      doAssert(prev < i)
-      prev = i
+      s4.del(2)
+      doAssert(2 notin s4)
+      doAssert(s4.len == 2)
+      prev = 0
+      for i in s4.values:
+        doAssert(prev < i)
+        prev = i
 
-  block: # Deletion from OrderedTable should account for collision groups. See issue #5057.
-    # The bug is reproducible only with exact keys
-    const key1 = "boy_jackpot.inGamma"
-    const key2 = "boy_jackpot.outBlack"
+    block: # Deletion from OrderedTable should account for collision groups. See issue #5057.
+      # The bug is reproducible only with exact keys
+      const key1 = "boy_jackpot.inGamma"
+      const key2 = "boy_jackpot.outBlack"
 
-    var t = {
-        key1: 0,
-        key2: 0
-    }.toOrderedTable()
+      var t = {
+          key1: 0,
+          key2: 0
+      }.toOrderedTable()
 
-    t.del(key1)
-    assert(t.len == 1)
-    assert(key2 in t)
+      t.del(key1)
+      assert(t.len == 1)
+      assert(key2 in t)
 
   var
     t1 = initCountTable[string]()
