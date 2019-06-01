@@ -12,7 +12,7 @@
 import
   parseutils, strutils, pegs, os, osproc, streams, parsecfg, json,
   marshal, backend, parseopt, specs, htmlgen, browsers, terminal,
-  algorithm, times, sets, md5, sequtils
+  algorithm, times, sets, md5, sequtils, azure
 
 include compiler/nodejs
 
@@ -279,7 +279,7 @@ proc addResult(r: var TResults, test: TTest, target: TTarget,
       maybeStyledEcho styleBright, given, "\n"
 
 
-  if backendLogging and existsEnv("APPVEYOR"):
+  if backendLogging and (isAppVeyor or isAzure):
     let (outcome, msg) =
       case success
       of reSuccess:
@@ -290,14 +290,17 @@ proc addResult(r: var TResults, test: TTest, target: TTarget,
         ("Failed", "Failure: " & $success & "\n" & given)
       else:
         ("Failed", "Failure: " & $success & "\nExpected:\n" & expected & "\n\n" & "Gotten:\n" & given)
-    var p = startProcess("appveyor", args=["AddTest", test.name.replace("\\", "/") & test.options,
-                         "-Framework", "nim-testament", "-FileName",
-                         test.cat.string,
-                         "-Outcome", outcome, "-ErrorMessage", msg,
-                         "-Duration", $(duration*1000).int],
-                         options={poStdErrToStdOut, poUsePath, poParentStreams})
-    discard waitForExit(p)
-    close(p)
+    if isAzure:
+      azure.addTestResult(name, test.cat.string, int(duration * 1000), msg, success)
+    else:
+      var p = startProcess("appveyor", args=["AddTest", test.name.replace("\\", "/") & test.options,
+                           "-Framework", "nim-testament", "-FileName",
+                           test.cat.string,
+                           "-Outcome", outcome, "-ErrorMessage", msg,
+                           "-Duration", $(duration*1000).int],
+                           options={poStdErrToStdOut, poUsePath, poParentStreams})
+      discard waitForExit(p)
+      close(p)
 
 proc cmpMsgs(r: var TResults, expected, given: TSpec, test: TTest, target: TTarget) =
   if strip(expected.msg) notin strip(given.msg):
@@ -625,6 +628,8 @@ proc main() =
         quit Usage
     of "skipfrom":
       skipFrom = p.val.string
+    of "azurerunid":
+      runId = p.val.parseInt
     else:
       quit Usage
     p.next()
@@ -637,6 +642,7 @@ proc main() =
   of "all":
     #processCategory(r, Category"megatest", p.cmdLineRest.string, testsDir, runJoinableTests = false)
 
+    azure.start()
     var myself = quoteShell(findExe("testament" / "tester"))
     if targetsStr.len > 0:
       myself &= " " & quoteShell("--targets:" & targetsStr)
@@ -645,6 +651,8 @@ proc main() =
 
     if skipFrom.len > 0:
       myself &= " " & quoteShell("--skipFrom:" & skipFrom)
+    if isAzure:
+      myself &= " " & quoteShell("--azureRunId:" & $runId)
 
     var cats: seq[string]
     let rest = if p.cmdLineRest.string.len > 0: " " & p.cmdLineRest.string else: ""
@@ -670,13 +678,16 @@ proc main() =
         progressStatus(i)
         processCategory(r, Category(cati), p.cmdLineRest.string, testsDir, runJoinableTests = false)
     else:
+      addQuitProc azure.finish
       quit osproc.execProcesses(cmds, {poEchoCmd, poStdErrToStdOut, poUsePath, poParentStreams}, beforeRunEvent = progressStatus)
   of "c", "cat", "category":
+    azure.start()
     skips = loadSkipFrom(skipFrom)
     var cat = Category(p.key)
     p.next
     processCategory(r, cat, p.cmdLineRest.string, testsDir, runJoinableTests = true)
   of "pcat":
+    azure.start()
     skips = loadSkipFrom(skipFrom)
     # 'pcat' is used for running a category in parallel. Currently the only
     # difference is that we don't want to run joinable tests here as they
@@ -686,6 +697,7 @@ proc main() =
     p.next
     processCategory(r, cat, p.cmdLineRest.string, testsDir, runJoinableTests = false)
   of "r", "run":
+    azure.start()
     # at least one directory is required in the path, to use as a category name
     let pathParts = split(p.key.string, {DirSep, AltSep})
     # "stdlib/nre/captures.nim" -> "stdlib" + "nre/captures.nim"
@@ -701,6 +713,7 @@ proc main() =
     if action == "html": openDefaultBrowser(resultsFile)
     else: echo r, r.data
   backend.close()
+  if isMainProcess: azure.finish()
   var failed = r.total - r.passed - r.skipped
   if failed != 0:
     echo "FAILURE! total: ", r.total, " passed: ", r.passed, " skipped: ",
