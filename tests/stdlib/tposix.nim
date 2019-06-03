@@ -1,4 +1,5 @@
 discard """
+cmd: "nim c --threads:off -r $file"
 outputsub: ""
 """
 
