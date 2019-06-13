@@ -25,7 +25,7 @@ type
     detectSemicolonKind, useSemicolon, dontTouch
 
   LayoutToken = enum
-    ltSpaces, ltNewline, ltTab,
+    ltSpaces, ltNewline, ltTab, ltOptionalSpaces,
     ltComment, ltLit, ltKeyword, ltExportMarker, ltIdent,
     ltOther, ltOpr,
     ltBeginSection, ltEndSection
@@ -88,6 +88,30 @@ proc computeRhs(em: Emitter; pos: int): int =
     inc result, em.tokens[p].len
     inc p
 
+proc optionalIsGood(em: Emitter; pos: int): bool =
+  let ourIndent = em.tokens[pos].len
+  var p = pos+1
+  var lineLen = 0
+  while p < em.tokens.len and em.kinds[p] != ltNewline:
+    inc lineLen, em.tokens[p].len
+    inc p
+  # skip newline:
+  inc p
+  if lineLen <= 10:
+    result = false
+  elif p < em.tokens.len and em.kinds[p] == ltSpaces and
+     p-2 >= 0 and em.tokens[p-2] == "," and em.tokens[p].len != ourIndent:
+    result = false
+  else:
+    result = true
+
+proc lenOfNextTokens(em: Emitter; pos: int): int =
+  result = 0
+  for i in 0..2:
+    if i < em.tokens.len:
+      if em.kinds[i] == ltNewline: break
+      inc result, em.tokens[i].len
+
 proc closeEmitter*(em: var Emitter) =
   let outFile = em.config.absOutFile
 
@@ -95,7 +119,8 @@ proc closeEmitter*(em: var Emitter) =
   var maxLhs = 0
   var lineLen = 0
   var lineBegin = 0
-  for i in 0..em.tokens.high:
+  var i = 0
+  while i <= em.tokens.high:
     case em.kinds[i]
     of ltBeginSection:
       maxLhs = computeMax(em, lineBegin)
@@ -111,9 +136,23 @@ proc closeEmitter*(em: var Emitter) =
       content.add em.tokens[i]
       lineLen = 0
       lineBegin = i+1
+
+    of ltOptionalSpaces:
+      if lineLen + lenOfNextTokens(em, i+1) >= MaxLineLen and optionalIsGood(em, i):
+        if i-1 >= 0 and em.kinds[i-1] == ltSpaces:
+          let spaces = em.tokens[i-1].len
+          content.setLen(content.len - spaces)
+
+        content.add em.tokens[i]
+        lineLen = em.tokens[i].len-1
+        if i+1 < em.kinds.len and em.kinds[i+1] == ltSpaces:
+          # inhibit these spaces:
+          inc i
+        lineBegin = i+1
     else:
       content.add em.tokens[i]
       inc lineLen, em.tokens[i].len
+    inc i
 
   if fileExists(outFile) and readFile(outFile.string) == content:
     discard "do nothing, see #9499"
@@ -198,30 +237,33 @@ proc softLinebreak(em: var Emitter, lit: string) =
       # bug #10295, check first if even more indentation would help:
       let spaces = em.indentLevel+moreIndent(em)
       if spaces < em.col:
-        removeSpaces em
-        wrNewline(em)
-        em.col = 0
-        wrSpaces em, spaces
+        #removeSpaces em
+        #wrNewline(em)
+        #em.col = 0
+        if spaces > 0:
+          wr(em, "\L" & strutils.repeat(' ', spaces), ltOptionalSpaces)
     else:
       # search backwards for a good split position:
       for a in mitems(em.altSplitPos):
         if a > em.fixedUntil:
-          var spaces = 0
-          while a+spaces < em.kinds.len and em.kinds[a+spaces] == ltSpaces:
-            inc spaces
-          if spaces > 0:
-            delete(em.tokens, a, a+spaces-1)
-            delete(em.kinds, a, a+spaces-1)
-          em.kinds.insert(ltNewline, a)
-          em.tokens.insert("\L", a)
-          em.kinds.insert(ltSpaces, a+1)
-          em.tokens.insert(repeat(' ', em.indentLevel+moreIndent(em)), a+1)
-          # recompute em.col:
-          var i = em.kinds.len-1
-          em.col = 0
-          while i >= 0 and em.kinds[i] != ltNewline:
-            inc em.col, em.tokens[i].len
-            dec i
+          when false:
+            var spaces = 0
+            while a+spaces < em.kinds.len and em.kinds[a+spaces] in {ltSpaces, ltOptionalSpaces}:
+              inc spaces
+            if spaces > 0:
+              delete(em.tokens, a, a+spaces-1)
+              delete(em.kinds, a, a+spaces-1)
+          #em.kinds.insert(ltNewline, a)
+          #em.tokens.insert("\L", a)
+          em.kinds.insert(ltOptionalSpaces, a+1)
+          em.tokens.insert("\L" & repeat(' ', em.indentLevel+moreIndent(em)), a+1)
+          when false:
+            # recompute em.col:
+            var i = em.kinds.len-1
+            em.col = 0
+            while i >= 0 and em.kinds[i] != ltNewline:
+              inc em.col, em.tokens[i].len
+              dec i
           # mark position as "already split here"
           a = -1
           break
