@@ -15,10 +15,18 @@ cache:
     - '%MINGW_ARCHIVE%'
     - '%DLLS_ARCHIVE%'
 
+platform:
+  - x86
+  - x64
+
 matrix:
   #allow_failures:
   #  - NIM_TEST_PACKAGES: true
   fast_finish: true
+
+  exclude:
+    - platform: x86
+      NIM_TEST_PACKAGES: true
 
 install:
   - ps: Install-Product node 8 # node 8 or later is required to test js async stuff
