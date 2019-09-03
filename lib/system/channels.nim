@@ -128,7 +128,7 @@ proc storeAux(dest, src: pointer, mt: PNimType, t: PRawChannel,
       dstseq.reserved = seq.len
       for i in 0..seq.len-1:
         storeAux(
-          cast[pointer](dst +% i*% mt.base.size +% GenericSeqSize),
+          cast[pointer](dst +% i *% mt.base.size +% GenericSeqSize),
           cast[pointer](cast[ByteAddress](s2) +% i *% mt.base.size +%
                         GenericSeqSize),
           mt.base, t, mode)
@@ -145,8 +145,8 @@ proc storeAux(dest, src: pointer, mt: PNimType, t: PRawChannel,
     storeAux(dest, src, mt.node, t, mode)
   of tyArray, tyArrayConstr:
     for i in 0..(mt.size div mt.base.size)-1:
-      storeAux(cast[pointer](d +% i*% mt.base.size),
-               cast[pointer](s +% i*% mt.base.size), mt.base, t, mode)
+      storeAux(cast[pointer](d +% i *% mt.base.size),
+               cast[pointer](s +% i *% mt.base.size), mt.base, t, mode)
   of tyRef:
     var s = cast[PPointer](src)[]
     var x = cast[PPointer](dest)
