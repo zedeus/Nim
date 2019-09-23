@@ -1,0 +1,7 @@
+`=&gt;`	sugar.html#=>.m,untyped,untyped	sugar: `=&gt;`(p, b: untyped): untyped	
+`-&gt;`	sugar.html#->.m,untyped,untyped	sugar: `-&gt;`(p, b: untyped): untyped	
+lc	sugar.html#lc	sugar: lc	
+`|`	sugar.html#|.t,ListComprehension,untyped	sugar: `|`(lc: ListComprehension; comp: untyped): untyped	
+`[]`	sugar.html#[].m,ListComprehension,untyped,untyped	sugar: `[]`(lc: ListComprehension; comp, typ: untyped): untyped	
+dump	sugar.html#dump.m,typed	sugar: dump(x: typed): untyped	
+distinctBase	sugar.html#distinctBase.m,typedesc	sugar: distinctBase(T: typedesc): untyped	

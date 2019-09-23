@@ -1,0 +1,10 @@
+Nim's Garbage Collector	gc.html
+Introduction	gc.html#introduction	 Introduction	
+realtime systems	gc.html#realtime-systems_1	Introduction	
+Cycle collector	gc.html#cycle-collector	 Cycle collector	
+Realtime support	gc.html#realtime-support	 Realtime support	
+useRealtimeGC	gc.html#userealtimegc_1	Realtime support	
+Time measurement	gc.html#time-measurement	  Time measurement	
+Tweaking the GC	gc.html#tweaking-the-gc	  Tweaking the GC	
+Keeping track of memory	gc.html#keeping-track-of-memory	  Keeping track of memory	
+Heap dump	gc.html#heap-dump	 Heap dump	

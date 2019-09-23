@@ -1,0 +1,8 @@
+Console	jsconsole.html#Console	jsconsole: Console	
+convertToConsoleLoggable	jsconsole.html#convertToConsoleLoggable,T	jsconsole: convertToConsoleLoggable[T](v: T): RootRef	
+convertToConsoleLoggable	jsconsole.html#convertToConsoleLoggable.t,string	jsconsole: convertToConsoleLoggable(v: string): RootRef	
+log	jsconsole.html#log.m,Console,varargs[RootRef,convertToConsoleLoggable]	jsconsole: log(console: Console; args: varargs[RootRef, convertToConsoleLoggable]): untyped	
+debug	jsconsole.html#debug.m,Console,varargs[RootRef,convertToConsoleLoggable]	jsconsole: debug(console: Console; args: varargs[RootRef, convertToConsoleLoggable]): untyped	
+info	jsconsole.html#info.m,Console,varargs[RootRef,convertToConsoleLoggable]	jsconsole: info(console: Console; args: varargs[RootRef, convertToConsoleLoggable]): untyped	
+error	jsconsole.html#error.m,Console,varargs[RootRef,convertToConsoleLoggable]	jsconsole: error(console: Console; args: varargs[RootRef, convertToConsoleLoggable]): untyped	
+console	jsconsole.html#console_2	jsconsole: console	
